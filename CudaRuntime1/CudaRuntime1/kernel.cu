@@ -102,6 +102,7 @@ void matrixMul(float* resultMatrix, float* MatrixA, float* MatrixB, int SIZE) {
 }
 __global__ void kernelMatrixMul(float* Result, float* MatrixA, float* MatrixB, int SIZE) {
 
+    // Generic matrix 
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
             float matrixSum = 0;
@@ -314,47 +315,52 @@ int main()
     //transferFunction(4096);
     
   // Initialize matrices
-  /*float* MatrixA;
+  float* MatrixA;
   float* MatrixB;
   float* resultMatrix1;
-  float* resultMatrix2;*/
+  float* resultMatrix2;
 
   // Initialize to 256
-  //int BYTES = 0;
+  int BYTES = 0;
 
-  //BYTES = 256 * 256 * sizeof(float);
+  BYTES = 256 * 256 * sizeof(float);
 
-  //MatrixA = (float*)malloc(BYTES);
-  //MatrixB = (float*)malloc(BYTES);
-  //resultMatrix1 = (float*)malloc(BYTES);
-  //resultMatrix2 = (float*)malloc(BYTES);
+  MatrixA = (float*)malloc(BYTES);
+  MatrixB = (float*)malloc(BYTES);
+  resultMatrix1 = (float*)malloc(BYTES);
+  resultMatrix2 = (float*)malloc(BYTES);
 
-  //int sizes[5] = {256, 512, 1024};
+  int sizes[5] = {256, 512, 1024};
 
-  ////For the three required matrix sizes
-  //for(int i = 0; i < 5; i++){
-  //    BYTES = sizes[i] * sizes[i] * sizeof(float);
+  //For the three required matrix sizes
+  for(int i = 0; i < 3; i++){
+      BYTES = sizes[i] * sizes[i] * sizeof(float);
 
-  //    // allocated the necessary memory
-  //    MatrixA = (float*)realloc(MatrixA, BYTES);
-  //    MatrixB = (float*)realloc(MatrixB, BYTES);
-  //    resultMatrix1 = (float*)realloc(resultMatrix1, BYTES);
-  //    resultMatrix2 = (float*)realloc(resultMatrix2, BYTES);
+      // allocated the necessary memory
+      MatrixA = (float*)realloc(MatrixA, BYTES);
+      MatrixB = (float*)realloc(MatrixB, BYTES);
+      resultMatrix1 = (float*)realloc(resultMatrix1, BYTES);
+      resultMatrix2 = (float*)realloc(resultMatrix2, BYTES);
 
-  //    // Reinitialize larger arrays
-  //    initializeMatrix(MatrixA, sizes[i]);
-  //    initializeMatrix(MatrixB, sizes[i]);
+      // Reinitialize larger arrays
+      initializeMatrix(MatrixA, sizes[i]);
+      initializeMatrix(MatrixB, sizes[i]);
 
-  //    // Call CPU multiplication
-  //    matrixMul(resultMatrix2, MatrixA, MatrixB, sizes[i]);
-  //    // Call GPU multiplication
-  //    gpuMatrixMul(resultMatrix1, MatrixA, MatrixB, sizes[i]);
-  //    // Verify they are the same value
-  //    verifyMatrix(resultMatrix1, resultMatrix2, sizes[i]);
+      // Call CPU multiplication
+      matrixMul(resultMatrix2, MatrixA, MatrixB, sizes[i]);
+     // Call GPU multiplication
+      gpuMatrixMul(resultMatrix1, MatrixA, MatrixB, sizes[i]);
+     // Verify they are the same value
+      verifyMatrix(resultMatrix1, resultMatrix2, sizes[i]);
 
-  //}
+  }
 
-  //return 0;
+  free(MatrixA);
+  free(MatrixB);
+  free(resultMatrix1);
+  free(resultMatrix2);
+
+  return 0;
 
   // Initialize all matrices
   float* MatrixA;
