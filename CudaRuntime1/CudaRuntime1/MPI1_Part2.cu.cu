@@ -1,11 +1,12 @@
 ﻿
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctime>
 #include <math.h>
+
+// Elizabeth Dickson 20334409
 
 void initializeMatrix(float* Array, int SIZE) {
     // Function associates a random float at each index of the matrix
@@ -20,7 +21,7 @@ void initializeMatrix(float* Array, int SIZE) {
 void transferFunction(int SIZE) {
     // Initialize byte size by matrix size
     int BYTES = SIZE * SIZE * sizeof(float);
-       
+
     // Initialize and allocate memory to host Matrix A and B
     float* hostMatrixA = 0;
     float* hostMatrixB = 0;
@@ -38,7 +39,7 @@ void transferFunction(int SIZE) {
     // Initialize host to device and device to host times
     float HTD = 0;
     float DTH = 0;
-    
+
     // CUDA event variables
     cudaEvent_t startTime, stopTime;
     cudaEventCreate(&startTime);
@@ -61,7 +62,7 @@ void transferFunction(int SIZE) {
     cudaMemcpy(hostMatrixB, deviceMatrixB, BYTES, cudaMemcpyDeviceToHost);
 
     // Stop the timer and associate it with device to host variable
-    cudaEventRecord(stopTime); 
+    cudaEventRecord(stopTime);
     cudaEventSynchronize(stopTime);
     cudaEventElapsedTime(&DTH, startTime, stopTime);
 
@@ -79,7 +80,7 @@ void transferFunction(int SIZE) {
 }
 
 void matrixMul(float* resultMatrix, float* MatrixA, float* MatrixB, int SIZE) {
-    
+
     // Initialize clock 
     clock_t startTime, stopTime;
     startTime = clock();
@@ -235,14 +236,14 @@ void gpuThreadMatrixMul(float* Result, float* MatrixA, float* MatrixB, int SIZE,
 
     dim3 dimGrid(NumBlocks, NumBlocks);
     dim3 dimBlock(blockWidth, blockWidth);
-    
+
     // Start recording and call the thread multiplication
     cudaEventRecord(startTime, 0);
     kernelMultipleMatrixMul << <dimGrid, dimBlock >> > (deviceResultMatrix, deviceMatrixA, deviceMatrixB, SIZE);
     // Stop recording and store time in appropriate variable
     cudaEventRecord(stopTime, 0);
     cudaEventSynchronize(stopTime);
-    cudaEventElapsedTime(&time, startTime, stopTime); 
+    cudaEventElapsedTime(&time, startTime, stopTime);
 
     // Copy the finalized matrix over to the host
     cudaMemcpy(Result, deviceResultMatrix, BYTES, cudaMemcpyDeviceToHost);
@@ -261,150 +262,93 @@ void gpuThreadMatrixMul(float* Result, float* MatrixA, float* MatrixB, int SIZE,
 
 int main()
 {
-    //// Number of devices
-    //int nd;
 
-    //// Name of Devices
-    //char name[50];
+    ///////////////////////////////////////////Part 1
 
-    //// Print Number of Cuda Devices
-    //cudaGetDeviceCount(&nd);
-    //printf("Number of CUDA devices: %d\n", nd);
+    transferFunction(256);
+    transferFunction(512);
+    transferFunction(1024);
+    transferFunction(2048);
+    transferFunction(4096);
 
-    //// Gather device information for each identified CUDA device 
-    //for (int d = 0; d < nd; d++)
-    //{
-    //    // Struct with device information
-    //    cudaDeviceProp dp;
-    //    cudaGetDeviceProperties(&dp, d);
 
-    //    // Device Type
-    //    printf("Device Type: %s\n", dp.name);
-    //    //Clock Rate
-    //    printf("Clock Rate: %d\n", dp.clockRate);
+    ///////////////////////////////////////////Part 2
+   //Initialize matrices
+    float* MatrixA;
+    float* MatrixB;
+    float* resultMatrix1;
+    float* resultMatrix2;
 
-    //    // Number of streaming multiprocessors
-    //    printf("Number of Streaming Multiprocessors: %d\n", dp.multiProcessorCount);
+    // Initialize to 256
+    int BYTES = 0;
 
-    //    // Number of cores
-    //    printf("Number of Cores: %d\n", 128 * dp.multiProcessorCount);
+    BYTES = 256 * 256 * sizeof(float);
 
-    //    // Warp size
-    //    printf("Warp Size: %d\n", dp.warpSize);
+    MatrixA = (float*)malloc(BYTES);
+    MatrixB = (float*)malloc(BYTES);
+    resultMatrix1 = (float*)malloc(BYTES);
+    resultMatrix2 = (float*)malloc(BYTES);
 
-    //    // Global, constant, and shared memory
-    //    printf("Global Memory: %zu\n", dp.totalGlobalMem);
-    //    printf("Amount of Constant Memory: %zu\n", dp.totalConstMem);
-    //    printf("Amount of Shared Memory per Block: %zu\n", dp.sharedMemPerBlock);
+    int sizes[5] = { 256, 512, 1024, 2048, 4096 };
 
-    //    // Reg and threads per block
-    //    printf("Number of Registers Available Per Block: %d\n", dp.regsPerBlock);
-    //    printf("Maximum Number of Threads Per Block: %d\n", dp.maxThreadsPerBlock);
+    //For the three required matrix sizes
+    for (int i = 0; i < 5; i++) {
+        BYTES = sizes[i] * sizes[i] * sizeof(float);
 
-    //    // Dimension of block and grid
-    //    printf("Maximum Size of each Dimension of a Block: %dx%dx%d\n", dp.maxThreadsDim[0], dp.maxThreadsDim[1], dp.maxThreadsDim[2]);
-    //    printf("Maximum Size of each Dimension of a Grid: %dx%dx%d\n", dp.maxGridSize[0], dp.maxGridSize[1], dp.maxGridSize[2]);
+        // allocated the necessary memory
+        MatrixA = (float*)realloc(MatrixA, BYTES);
+        MatrixB = (float*)realloc(MatrixB, BYTES);
+        resultMatrix1 = (float*)realloc(resultMatrix1, BYTES);
+        resultMatrix2 = (float*)realloc(resultMatrix2, BYTES);
 
-    //}
+        // Reinitialize larger arrays
+        initializeMatrix(MatrixA, sizes[i]);
+        initializeMatrix(MatrixB, sizes[i]);
 
-    //transferFunction(256);
-    //transferFunction(512);
-    //transferFunction(1024);
-    //transferFunction(2048);
-    //transferFunction(4096);
-    
-  // Initialize matrices
-  /*float* MatrixA;
-  float* MatrixB;
-  float* resultMatrix1;
-  float* resultMatrix2;*/
+        // Call CPU multiplication
+        matrixMul(resultMatrix2, MatrixA, MatrixB, sizes[i]);
+        // Call GPU multiplication
+        gpuMatrixMul(resultMatrix1, MatrixA, MatrixB, sizes[i]);
+        // Verify they are the same value
+        verifyMatrix(resultMatrix1, resultMatrix2, sizes[i]);
 
-  // Initialize to 256
-  //int BYTES = 0;
+    }
 
-  //BYTES = 256 * 256 * sizeof(float);
+    ///////////////////////////////////////////Part 3
 
-  //MatrixA = (float*)malloc(BYTES);
-  //MatrixB = (float*)malloc(BYTES);
-  //resultMatrix1 = (float*)malloc(BYTES);
-  //resultMatrix2 = (float*)malloc(BYTES);
 
-  //int sizes[5] = {256, 512, 1024};
+    // Thread block sizes/ matrix sizes
+    int list[5] = { 2, 4, 8, 16, 32 };
 
-  ////For the three required matrix sizes
-  //for(int i = 0; i < 5; i++){
-  //    BYTES = sizes[i] * sizes[i] * sizeof(float);
+    // Loop through sizes
+    for (int i = 0; i < 5; i++) {
+        BYTES = sizes[i] * sizes[i] * sizeof(float);
 
-  //    // allocated the necessary memory
-  //    MatrixA = (float*)realloc(MatrixA, BYTES);
-  //    MatrixB = (float*)realloc(MatrixB, BYTES);
-  //    resultMatrix1 = (float*)realloc(resultMatrix1, BYTES);
-  //    resultMatrix2 = (float*)realloc(resultMatrix2, BYTES);
+        // Allocate memory for new size
+        MatrixA = (float*)realloc(MatrixA, BYTES);
+        MatrixB = (float*)realloc(MatrixB, BYTES);
+        resultMatrix1 = (float*)realloc(resultMatrix1, BYTES);
+        resultMatrix2 = (float*)realloc(resultMatrix2, BYTES);
 
-  //    // Reinitialize larger arrays
-  //    initializeMatrix(MatrixA, sizes[i]);
-  //    initializeMatrix(MatrixB, sizes[i]);
+        // Initialize larger matrices
+        initializeMatrix(MatrixA, sizes[i]);
+        initializeMatrix(MatrixB, sizes[i]);
 
-  //    // Call CPU multiplication
-  //    matrixMul(resultMatrix2, MatrixA, MatrixB, sizes[i]);
-  //    // Call GPU multiplication
-  //    gpuMatrixMul(resultMatrix1, MatrixA, MatrixB, sizes[i]);
-  //    // Verify they are the same value
-  //    verifyMatrix(resultMatrix1, resultMatrix2, sizes[i]);
+        for (int j = 0; j < 5; j++) {
+            // Call GPU matrix multiplications with differeing threads
+            gpuThreadMatrixMul(resultMatrix1, MatrixA, MatrixB, sizes[i], list[j]);
+            // Call CPU matrix multiplication
+            matrixMul(resultMatrix2, MatrixA, MatrixB, sizes[i]);
+            // Ensure the multiplcation is the same result
+            verifyMatrix(resultMatrix1, resultMatrix2, sizes[i]);
+        }
+    }
 
-  //}
+    free(MatrixA);
+    free(MatrixB);
+    free(resultMatrix1);
+    free(resultMatrix2);
 
-  //return 0;
-
-  // Initialize all matrices
-  float* MatrixA;
-  float* MatrixB;
-  float* resultMatrix1;
-  float* resultMatrix2;
-
-  // Set matrices to first memory size
-  int BYTES = 0;
-
-  BYTES = 256 * 256 * sizeof(float);
-
-  MatrixA = (float*)malloc(BYTES);
-  MatrixB = (float*)malloc(BYTES);
-  resultMatrix1 = (float*)malloc(BYTES);
-  resultMatrix2 = (float*)malloc(BYTES);
-
-  // Initialize matrices
-  initializeMatrix(MatrixA, 256);
-  initializeMatrix(MatrixB, 256);
-
-  // Thread block sizes/ matrix sizes
-  int list[5] = { 2, 4, 8, 16, 32 };
-  int sizes[5] = {256, 512, 1024, 2048, 4096};
-
-  // Loop through sizes
-  for(int i = 0; i < 5; i++){
-      BYTES = sizes[i] * sizes[i] * sizeof(float);
-
-      // Allocate memory for new size
-      MatrixA = (float*)realloc(MatrixA, BYTES);
-      MatrixB = (float*)realloc(MatrixB, BYTES);
-      resultMatrix1 = (float*)realloc(resultMatrix1, BYTES);
-      resultMatrix2 = (float*)realloc(resultMatrix2, BYTES);
-
-      // Initialize larger matrices
-      initializeMatrix(MatrixA, sizes[i]);
-      initializeMatrix(MatrixB, sizes[i]);
-
-      for (int j = 0; j < 5; j++) {
-          // Call GPU matrix multiplications with differeing threads
-          gpuThreadMatrixMul(resultMatrix1, MatrixA, MatrixB, sizes[i], list[j]);
-          // Call CPU matrix multiplication
-          matrixMul(resultMatrix2, MatrixA, MatrixB, sizes[i]);
-          // Ensure the multiplcation is the same result
-          verifyMatrix(resultMatrix1, resultMatrix2, sizes[i]);
-      }
-  }
-
-  return 0;
+    return 0;
 }
-
 
